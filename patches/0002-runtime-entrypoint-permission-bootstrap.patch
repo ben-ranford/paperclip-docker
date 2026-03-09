@@ -45,7 +45,7 @@ index 0000000..7af167e
 +fi
 +
 +if ! gosu "${PAPERCLIP_RUNTIME_UID}:${PAPERCLIP_RUNTIME_GID}" sh -ec \
-+  "mkdir -p \"${PAPERCLIP_HOME}/instances/default/logs\" \"${PAPERCLIP_HOME}/instances/default/db\""; then
++  "mkdir -p \"${PAPERCLIP_HOME}/instances/default/logs\""; then
 +  cat >&2 <<EOM
 +ERROR: ${PAPERCLIP_HOME} is not writable by uid ${PAPERCLIP_RUNTIME_UID}.
 +Fix with:
