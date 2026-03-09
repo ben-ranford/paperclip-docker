@@ -24,7 +24,7 @@ Patch files applied during build:
 
 - `patches/0001-dockerfile-build-and-runtime-fixes.patch`
 - `patches/0002-runtime-entrypoint-permission-bootstrap.patch`
-- `patches/0002-embedded-postgres-locale-fix.patch`
+- `patches/0003-embedded-postgres-locale-fix.patch`
 
 ## Using The Docker Image
 
