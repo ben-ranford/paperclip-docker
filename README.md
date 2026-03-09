@@ -24,6 +24,7 @@ Patch files applied during build:
 
 - `patches/0001-dockerfile-build-and-runtime-fixes.patch`
 - `patches/0002-runtime-entrypoint-permission-bootstrap.patch`
+- `patches/0002-embedded-postgres-locale-fix.patch`
 
 ## Using The Docker Image
 
@@ -63,6 +64,9 @@ Common:
 - `PAPERCLIP_FIX_OWNERSHIP` (default: `1`; set `0` to skip startup `chown`)
 - `PAPERCLIP_RUNTIME_UID` (default: `1000`)
 - `PAPERCLIP_RUNTIME_GID` (default: `1000`)
+
+Embedded PostgreSQL note:
+- The image configures `en_US.UTF-8` in the runtime layer because `embedded-postgres` initialisation expects this locale.
 
 Security and deployment:
 

@@ -1,0 +1,22 @@
+diff --git a/Dockerfile b/Dockerfile
+index 655057b..d87c439 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -35,9 +35,16 @@ FROM base AS production
+ WORKDIR /app
+ COPY --from=build /app /app
+ RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
++RUN apt-get update \
++  && apt-get install -y --no-install-recommends locales \
++  && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
++  && locale-gen \
++  && rm -rf /var/lib/apt/lists/*
+ RUN mkdir -p /paperclip && chown -R node:node /app /paperclip
+ 
+-ENV NODE_ENV=production \
++ENV LANG=en_US.UTF-8 \
++  LC_ALL=en_US.UTF-8 \
++  NODE_ENV=production \
+   HOME=/paperclip \
+   HOST=0.0.0.0 \
+   PORT=3100 \
