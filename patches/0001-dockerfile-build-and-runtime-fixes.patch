@@ -20,9 +20,9 @@ index 31e899f..3f7e5b4 100644
  
  ENV NODE_ENV=production \
    HOME=/paperclip \
-@@ -45,5 +47,6 @@ ENV NODE_ENV=production \
+@@ -45,5 +47,5 @@ ENV NODE_ENV=production \
  
- VOLUME ["/paperclip"]
+-VOLUME ["/paperclip"]
  EXPOSE 3100
 +USER node
  

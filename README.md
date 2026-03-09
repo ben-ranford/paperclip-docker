@@ -32,6 +32,13 @@ Pull:
 docker pull ghcr.io/ben-ranford/paperclip:latest
 ```
 
+Prepare a writable data directory for the container user (`uid=1000`):
+
+```sh
+mkdir -p ./data/paperclip
+sudo chown -R 1000:1000 ./data/paperclip
+```
+
 ### Environment Variables
 
 Required:
