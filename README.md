@@ -23,6 +23,7 @@ Latest image:
 Patch files applied during build:
 
 - `patches/0001-dockerfile-build-and-runtime-fixes.patch`
+- `patches/0002-runtime-entrypoint-permission-bootstrap.patch`
 
 ## Using The Docker Image
 
@@ -32,12 +33,17 @@ Pull:
 docker pull ghcr.io/ben-ranford/paperclip:latest
 ```
 
-Prepare a writable data directory for the container user (`uid=1000`):
+Prepare a writable data directory:
 
 ```sh
 mkdir -p ./data/paperclip
 sudo chown -R 1000:1000 ./data/paperclip
 ```
+
+The image now runs a startup entrypoint that attempts to fix bind-mount ownership for
+the runtime user (`uid=1000`, `gid=1000`) before launching the app. Pre-setting
+ownership is still recommended for large volumes because recursive `chown` can take
+time.
 
 ### Environment Variables
 
@@ -54,6 +60,9 @@ Common:
 - `DATABASE_URL` (optional; if unset, Paperclip uses embedded PostgreSQL)
 - `OPENAI_API_KEY` (optional; for Codex adapter)
 - `ANTHROPIC_API_KEY` (optional; for Claude adapter)
+- `PAPERCLIP_FIX_OWNERSHIP` (default: `1`; set `0` to skip startup `chown`)
+- `PAPERCLIP_RUNTIME_UID` (default: `1000`)
+- `PAPERCLIP_RUNTIME_GID` (default: `1000`)
 
 Security and deployment:
 
