@@ -1,0 +1,29 @@
+diff --git a/Dockerfile b/Dockerfile
+index 31e899f..3f7e5b4 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -20,7 +20,8 @@ COPY packages/adapters/openclaw-gateway/package.json packages/adapters/openclaw
+ COPY packages/adapters/opencode-local/package.json packages/adapters/opencode-local/
+ COPY packages/adapters/pi-local/package.json packages/adapters/pi-local/
+ 
+-RUN pnpm install --frozen-lockfile
++# Prefer lockfile integrity, but fall back when upstream lockfile lags package manifests.
++RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+ 
+ FROM base AS build
+ WORKDIR /app
+@@ -32,6 +33,7 @@ FROM base AS production
+ WORKDIR /app
+ COPY --from=build /app /app
+ RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
++RUN mkdir -p /paperclip && chown -R node:node /app /paperclip
+ 
+ ENV NODE_ENV=production \
+   HOME=/paperclip \
+@@ -45,5 +47,6 @@ ENV NODE_ENV=production \
+ 
+ VOLUME ["/paperclip"]
+ EXPOSE 3100
++USER node
+ 
+ CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"]

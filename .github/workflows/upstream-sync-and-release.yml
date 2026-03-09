@@ -1,0 +1,137 @@
+name: Upstream Docker Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: Force image publish even if this upstream commit was already published
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 2 * * *"
+
+concurrency:
+  group: upstream-docker-publish
+  cancel-in-progress: false
+
+jobs:
+  detect-upstream-head:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.head.outputs.sha }}
+      short_sha: ${{ steps.head.outputs.short_sha }}
+      commit_url: ${{ steps.head.outputs.commit_url }}
+    steps:
+      - name: Resolve upstream master head
+        id: head
+        run: |
+          set -euo pipefail
+          sha="$(git ls-remote https://github.com/paperclipai/paperclip.git refs/heads/master | awk '{print $1}')"
+          if [ -z "$sha" ]; then
+            echo "Failed to resolve upstream master SHA" >&2
+            exit 1
+          fi
+          short_sha="${sha:0:12}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "commit_url=https://github.com/paperclipai/paperclip/commit/$sha" >> "$GITHUB_OUTPUT"
+          echo "Upstream master: $sha"
+
+  publish-image:
+    runs-on: ubuntu-latest
+    needs: detect-upstream-head
+    permissions:
+      contents: read
+      packages: write
+    env:
+      UPSTREAM_SHA: ${{ needs.detect-upstream-head.outputs.sha }}
+      UPSTREAM_SHORT_SHA: ${{ needs.detect-upstream-head.outputs.short_sha }}
+      UPSTREAM_COMMIT_URL: ${{ needs.detect-upstream-head.outputs.commit_url }}
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/paperclip
+      FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_publish && 'true' || 'false' }}
+    steps:
+      - name: Checkout automation repo
+        uses: actions/checkout@v4
+
+      - name: Determine whether publish is needed
+        id: gate
+        run: |
+          set -euo pipefail
+          target_tag="${IMAGE_NAME}:sha-${UPSTREAM_SHORT_SHA}"
+
+          if [ "$FORCE_PUBLISH" = "true" ]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "target_tag=$target_tag" >> "$GITHUB_OUTPUT"
+            echo "Force publish enabled"
+            exit 0
+          fi
+
+          if docker buildx imagetools inspect "$target_tag" >/dev/null 2>&1; then
+            echo "Image tag already exists ($target_tag); skipping"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "target_tag=$target_tag" >> "$GITHUB_OUTPUT"
+          else
+            echo "New upstream commit; publishing"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "target_tag=$target_tag" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clone upstream source at resolved commit
+        if: steps.gate.outputs.should_publish == 'true'
+        run: |
+          set -euo pipefail
+          git clone https://github.com/paperclipai/paperclip.git upstream-src
+          cd upstream-src
+          git checkout --force "${UPSTREAM_SHA}"
+
+      - name: Apply local Docker patches
+        if: steps.gate.outputs.should_publish == 'true'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patch_files=(patches/*.patch)
+          if [ "${#patch_files[@]}" -eq 0 ]; then
+            echo "No patches found; building upstream as-is"
+            exit 0
+          fi
+          for patch_file in "${patch_files[@]}"; do
+            echo "Applying ${patch_file}"
+            git -C upstream-src apply --3way "../${patch_file}"
+          done
+
+      - name: Set up Docker Buildx
+        if: steps.gate.outputs.should_publish == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.gate.outputs.should_publish == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image
+        if: steps.gate.outputs.should_publish == 'true'
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag "${IMAGE_NAME}:sha-${UPSTREAM_SHORT_SHA}" \
+            --tag "${IMAGE_NAME}:latest" \
+            --push \
+            ./upstream-src
+
+      - name: Workflow summary
+        if: steps.gate.outputs.should_publish == 'true'
+        run: |
+          {
+            echo "### Upstream Publish Complete"
+            echo
+            echo "- Upstream commit: ${UPSTREAM_SHA}"
+            echo "- Upstream URL: ${UPSTREAM_COMMIT_URL}"
+            echo "- Image: ${IMAGE_NAME}:sha-${UPSTREAM_SHORT_SHA}"
+            echo "- Image: ${IMAGE_NAME}:latest"
+            echo "- Publish gate tag: ${{ steps.gate.outputs.target_tag }}"
+          } >> "$GITHUB_STEP_SUMMARY"
