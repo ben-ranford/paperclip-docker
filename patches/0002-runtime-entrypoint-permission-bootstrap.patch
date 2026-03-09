@@ -1,0 +1,57 @@
+diff --git a/Dockerfile b/Dockerfile
+index 655057b..93e95ee 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -35,7 +35,11 @@ FROM base AS production
+ WORKDIR /app
+ COPY --from=build /app /app
+ RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
+-RUN mkdir -p /paperclip && chown -R node:node /app /paperclip
++RUN apt-get update \
++  && apt-get install -y --no-install-recommends gosu \
++  && rm -rf /var/lib/apt/lists/*
++COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
++RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /paperclip && chown -R node:node /app /paperclip
+ 
+ ENV NODE_ENV=production \
+   HOME=/paperclip \
+@@ -49,6 +53,7 @@ ENV NODE_ENV=production \
+   PAPERCLIP_DEPLOYMENT_EXPOSURE=private
+ 
+ EXPOSE 3100
+-USER node
++USER root
++ENTRYPOINT ["docker-entrypoint.sh"]
+ 
+ CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"]
+diff --git a/docker-entrypoint.sh b/docker-entrypoint.sh
+new file mode 100755
+index 0000000..7af167e
+--- /dev/null
++++ b/docker-entrypoint.sh
+@@ -0,0 +1,25 @@
++#!/bin/sh
++set -eu
++
++PAPERCLIP_HOME="${PAPERCLIP_HOME:-/paperclip}"
++PAPERCLIP_RUNTIME_UID="${PAPERCLIP_RUNTIME_UID:-1000}"
++PAPERCLIP_RUNTIME_GID="${PAPERCLIP_RUNTIME_GID:-1000}"
++
++mkdir -p "${PAPERCLIP_HOME}"
++
++if [ "${PAPERCLIP_FIX_OWNERSHIP:-1}" = "1" ]; then
++  # Best-effort fix for host bind-mount ownership mismatches.
++  chown -R "${PAPERCLIP_RUNTIME_UID}:${PAPERCLIP_RUNTIME_GID}" "${PAPERCLIP_HOME}" 2>/dev/null || true
++fi
++
++if ! gosu "${PAPERCLIP_RUNTIME_UID}:${PAPERCLIP_RUNTIME_GID}" sh -ec \
++  "mkdir -p \"${PAPERCLIP_HOME}/instances/default/logs\" \"${PAPERCLIP_HOME}/instances/default/db\""; then
++  cat >&2 <<EOM
++ERROR: ${PAPERCLIP_HOME} is not writable by uid ${PAPERCLIP_RUNTIME_UID}.
++Fix with:
++  chown -R ${PAPERCLIP_RUNTIME_UID}:${PAPERCLIP_RUNTIME_GID} <host-path-mounted-at-${PAPERCLIP_HOME}>
++EOM
++  exit 1
++fi
++
++exec gosu "${PAPERCLIP_RUNTIME_UID}:${PAPERCLIP_RUNTIME_GID}" "$@"
