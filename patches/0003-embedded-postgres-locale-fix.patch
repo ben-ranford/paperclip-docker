@@ -1,9 +1,9 @@
 diff --git a/Dockerfile b/Dockerfile
-index 93e95ee..d5e2e60 100644
+index 70fb8b6..15af896 100644
 --- a/Dockerfile
 +++ b/Dockerfile
 @@ -36,12 +36,16 @@ WORKDIR /app
- COPY --from=build /app /app
+ COPY --chown=node:node --from=build /app /app
  RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
  RUN apt-get update \
 -  && apt-get install -y --no-install-recommends gosu \
