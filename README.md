@@ -63,6 +63,9 @@ Security and deployment:
 - `PAPERCLIP_DEPLOYMENT_EXPOSURE` (default: `private`)
 - `PAPERCLIP_AUTH_PUBLIC_BASE_URL` (optional explicit auth base URL)
 - `PAPERCLIP_ALLOWED_HOSTNAMES` (optional comma-separated allowlist)
+- `PAPERCLIP_ALLOW_AGENT_ASSIGN` (optional; default: disabled)
+  - `true`: allow agents to assign/reassign issues without `tasks:assign`.
+  - `false`/unset: keep normal assignment permission checks.
 
 Storage and backups (optional advanced):
 
