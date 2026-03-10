@@ -81,6 +81,7 @@ docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
+  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
 ```
@@ -92,6 +93,7 @@ docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
+  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -e DATABASE_URL=postgres://paperclip:paperclip@host.docker.internal:5432/paperclip \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
