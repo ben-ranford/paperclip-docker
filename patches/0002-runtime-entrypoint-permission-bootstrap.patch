@@ -1,12 +1,15 @@
 diff --git a/Dockerfile b/Dockerfile
-index 655057b..93e95ee 100644
+index f8f5c43..70fb8b6 100644
 --- a/Dockerfile
 +++ b/Dockerfile
-@@ -35,7 +35,11 @@ FROM base AS production
+@@ -34,9 +34,12 @@ RUN test -f server/dist/index.js || (echo "ERROR: server build output missing" &
+ FROM base AS production
  WORKDIR /app
- COPY --from=build /app /app
- RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
--RUN mkdir -p /paperclip && chown -R node:node /app /paperclip
+ COPY --chown=node:node --from=build /app /app
+-RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai \
+-  && mkdir -p /paperclip \
+-  && chown node:node /paperclip
++RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
 +RUN apt-get update \
 +  && apt-get install -y --no-install-recommends gosu \
 +  && rm -rf /var/lib/apt/lists/*
@@ -15,14 +18,14 @@ index 655057b..93e95ee 100644
  
  ENV NODE_ENV=production \
    HOME=/paperclip \
-@@ -49,6 +53,7 @@ ENV NODE_ENV=production \
+@@ -50,6 +53,7 @@ ENV NODE_ENV=production \
    PAPERCLIP_DEPLOYMENT_EXPOSURE=private
  
  EXPOSE 3100
--USER node
 +USER root
 +ENTRYPOINT ["docker-entrypoint.sh"]
  
+-USER node
  CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"]
 diff --git a/docker-entrypoint.sh b/docker-entrypoint.sh
 new file mode 100755
