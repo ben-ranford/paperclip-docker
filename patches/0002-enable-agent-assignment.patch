@@ -1,0 +1,12 @@
+diff --git a/server/src/routes/issues.ts b/server/src/routes/issues.ts
+index e4035df..ef59d67 100644
+--- a/server/src/routes/issues.ts
++++ b/server/src/routes/issues.ts
+@@ -98,6 +98,7 @@ export function issueRoutes(db: Db, storage: StorageService) {
+       return;
+     }
+     if (req.actor.type === "agent") {
++      if (process.env.PAPERCLIP_ALLOW_AGENT_ASSIGN === "true") return;
+       if (!req.actor.agentId) throw forbidden("Agent authentication required");
+       const allowedByGrant = await access.hasPermission(companyId, "agent", req.actor.agentId, "tasks:assign");
+       if (allowedByGrant) return;

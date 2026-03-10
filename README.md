@@ -76,6 +76,9 @@ Security and deployment:
 - `PAPERCLIP_DEPLOYMENT_EXPOSURE` (default: `private`)
 - `PAPERCLIP_AUTH_PUBLIC_BASE_URL` (optional explicit auth base URL)
 - `PAPERCLIP_ALLOWED_HOSTNAMES` (optional comma-separated allowlist)
+- `PAPERCLIP_ALLOW_AGENT_ASSIGN` (optional; default: disabled)
+  - `true`: allow agents to assign/reassign issues without `tasks:assign`.
+  - `false`/unset: keep normal assignment permission checks.
 
 Storage and backups (optional advanced):
 
@@ -91,6 +94,7 @@ docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
+  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
 ```
@@ -102,6 +106,7 @@ docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
+  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -e DATABASE_URL=postgres://paperclip:paperclip@host.docker.internal:5432/paperclip \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
