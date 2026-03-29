@@ -1,112 +1,64 @@
-# Paperclip Docker Mirror
+# Paperclip Docker Image
 
 [![Nightly Publish](https://img.shields.io/github/actions/workflow/status/ben-ranford/paperclip-docker/upstream-sync-and-release.yml?label=nightly%20publish)](https://github.com/ben-ranford/paperclip-docker/actions/workflows/upstream-sync-and-release.yml)
 [![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fben--ranford%2Fpaperclip-2ea44f?logo=github)](https://ghcr.io/ben-ranford/paperclip)
 
-This repository publishes a Docker image for Paperclip from upstream `paperclipai/paperclip`.
+Quick start for running Paperclip via Docker.
 
-Upstream source of truth:
-- [paperclipai/paperclip](https://github.com/paperclipai/paperclip)
-
-Latest image:
+Image:
 - [ghcr.io/ben-ranford/paperclip:latest](https://ghcr.io/ben-ranford/paperclip)
 
-## What It Does
+Upstream app source:
+- [paperclipai/paperclip](https://github.com/paperclipai/paperclip)
 
-- Runs nightly with GitHub Actions.
-- Checks the latest upstream `master` commit SHA.
-- Skips builds when the upstream SHA was already published.
-- Clones upstream source at that SHA.
-- Applies local patch files from `patches/*.patch`.
-- Builds and pushes multi-arch images to GHCR when a new upstream SHA appears.
+Patch details:
+- [docs/patch.md](docs/patch.md)
 
-Patch files applied during build:
+## Quick Start
 
-- `patches/0001-dockerfile-build-and-runtime-fixes.patch`
-- `patches/0002-runtime-entrypoint-permission-bootstrap.patch`
-- `patches/0003-embedded-postgres-locale-fix.patch`
-
-## Using The Docker Image
-
-Pull:
+1. Pull the image.
 
 ```sh
 docker pull ghcr.io/ben-ranford/paperclip:latest
 ```
 
-Prepare a writable data directory:
+2. Create a local data directory.
 
 ```sh
 mkdir -p ./data/paperclip
-sudo chown -R 1000:1000 ./data/paperclip
 ```
 
-The image now runs a startup entrypoint that attempts to fix bind-mount ownership for
-the runtime user (`uid=1000`, `gid=1000`) before launching the app. Pre-setting
-ownership is still recommended for large volumes because recursive `chown` can take
-time.
-
-### Environment Variables
-
-Required:
-
-- `BETTER_AUTH_SECRET`: auth/session signing secret for authenticated mode.
-
-Common:
-
-- `HOST` (default: `0.0.0.0`)
-- `PORT` (default: `3100`)
-- `PAPERCLIP_HOME` (default in image: `/paperclip`)
-- `PAPERCLIP_PUBLIC_URL` (recommended for callback/link correctness)
-- `DATABASE_URL` (optional; if unset, Paperclip uses embedded PostgreSQL)
-- `OPENAI_API_KEY` (optional; for Codex adapter)
-- `ANTHROPIC_API_KEY` (optional; for Claude adapter)
-- `PAPERCLIP_FIX_OWNERSHIP` (default: `1`; set `0` to skip startup `chown`)
-- `PAPERCLIP_RUNTIME_UID` (default: `1000`)
-- `PAPERCLIP_RUNTIME_GID` (default: `1000`)
-
-Embedded PostgreSQL note:
-- The image configures `en_US.UTF-8` in the runtime layer because `embedded-postgres` initialisation expects this locale.
-
-Security and deployment:
-
-- `PAPERCLIP_DEPLOYMENT_MODE` (default: `authenticated`)
-  - `authenticated`: authentication enabled.
-  - `local_trusted`: non-authenticated local trusted mode.
-- `PAPERCLIP_DEPLOYMENT_EXPOSURE` (default: `private`)
-- `PAPERCLIP_AUTH_PUBLIC_BASE_URL` (optional explicit auth base URL)
-- `PAPERCLIP_ALLOWED_HOSTNAMES` (optional comma-separated allowlist)
-- `PAPERCLIP_ALLOW_AGENT_ASSIGN` (optional; default: disabled)
-  - `true`: allow agents to assign/reassign issues without `tasks:assign`.
-  - `false`/unset: keep normal assignment permission checks.
-
-Storage and backups (optional advanced):
-
-- `PAPERCLIP_STORAGE_PROVIDER` (`local_disk` or `s3`)
-- `PAPERCLIP_STORAGE_S3_BUCKET`, `PAPERCLIP_STORAGE_S3_REGION`, `PAPERCLIP_STORAGE_S3_ENDPOINT`
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`
-- `PAPERCLIP_DB_BACKUP_ENABLED`, `PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES`, `PAPERCLIP_DB_BACKUP_RETENTION_DAYS`
-
-### Example: Embedded PostgreSQL
+3. Run Paperclip on port `3100`.
 
 ```sh
 docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
-  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
 ```
 
-### Example: External PostgreSQL
+Open `http://localhost:3100` in your browser.
+
+## Common Config
+
+- `BETTER_AUTH_SECRET` (required): auth/session signing secret.
+- `PAPERCLIP_PUBLIC_URL` (recommended): base URL used for links and callbacks.
+- `DATABASE_URL` (optional): use external PostgreSQL when set; embedded PostgreSQL is used when unset.
+- `OPENAI_API_KEY` (optional): enables Codex adapter.
+- `ANTHROPIC_API_KEY` (optional): enables Claude adapter.
+- `PAPERCLIP_ALLOW_AGENT_ASSIGN` (optional): set `true` to allow agents to assign/reassign issues without `tasks:assign`.
+- `PAPERCLIP_FIX_OWNERSHIP` (default `1`): set `0` to skip startup ownership repair on `/paperclip`.
+- `PAPERCLIP_RUNTIME_UID` and `PAPERCLIP_RUNTIME_GID` (default `1000`): runtime UID/GID used by the container entrypoint.
+
+## External PostgreSQL Example
 
 ```sh
 docker run --rm \
   -p 3100:3100 \
   -e BETTER_AUTH_SECRET=replace-with-strong-secret \
   -e PAPERCLIP_PUBLIC_URL=http://localhost:3100 \
-  -e PAPERCLIP_ALLOW_AGENT_ASSIGN=true \
   -e DATABASE_URL=postgres://paperclip:paperclip@host.docker.internal:5432/paperclip \
   -v "$(pwd)/data/paperclip:/paperclip" \
   ghcr.io/ben-ranford/paperclip:latest
