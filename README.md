@@ -22,9 +22,7 @@ Latest image:
 
 Patch files applied during build:
 
-- `patches/0001-dockerfile-build-and-runtime-fixes.patch`
-- `patches/0002-runtime-entrypoint-permission-bootstrap.patch`
-- `patches/0003-embedded-postgres-locale-fix.patch`
+- `patches/0002-enable-agent-assignment.patch`
 
 ## Using The Docker Image
 
@@ -41,10 +39,9 @@ mkdir -p ./data/paperclip
 sudo chown -R 1000:1000 ./data/paperclip
 ```
 
-The image now runs a startup entrypoint that attempts to fix bind-mount ownership for
-the runtime user (`uid=1000`, `gid=1000`) before launching the app. Pre-setting
-ownership is still recommended for large volumes because recursive `chown` can take
-time.
+The image uses the upstream Paperclip entrypoint and aligns the container user/group
+with `USER_UID`/`USER_GID` when values are provided. Pre-setting
+volume ownership is still recommended for large data volumes.
 
 ### Environment Variables
 
@@ -61,12 +58,8 @@ Common:
 - `DATABASE_URL` (optional; if unset, Paperclip uses embedded PostgreSQL)
 - `OPENAI_API_KEY` (optional; for Codex adapter)
 - `ANTHROPIC_API_KEY` (optional; for Claude adapter)
-- `PAPERCLIP_FIX_OWNERSHIP` (default: `1`; set `0` to skip startup `chown`)
-- `PAPERCLIP_RUNTIME_UID` (default: `1000`)
-- `PAPERCLIP_RUNTIME_GID` (default: `1000`)
-
-Embedded PostgreSQL note:
-- The image configures `en_US.UTF-8` in the runtime layer because `embedded-postgres` initialisation expects this locale.
+- `USER_UID` (default: `1000`)
+- `USER_GID` (default: `1000`)
 
 Security and deployment:
 
